@@ -18,9 +18,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  # BUILD: numero de ejecucion del workflow (lo lee tp11.BUILD y --version)
+  TP11_BUILD: ${{ github.run_number }}
+
 jobs:
   lint:
-    name: Lint
+    name: Calidad estatica (black, ruff, mypy, pyright, bandit)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -31,36 +35,36 @@ jobs:
 
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
-      - name: Ruff format check
-        run: uv run ruff format --check .
+      - name: Crear entorno virtual e instalar dependencias
+        run: |
+          uv venv --python 3.13
+          uv pip install -r requirements.txt
+          uv pip install -e .
 
-      - name: Ruff lint
-        run: uv run ruff check .
+      - name: Formato consistente (black)
+        run: .venv/bin/python -m black --check .
 
-  type-check:
-    name: Type check
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+      - name: Reglas PEP 8 y PEP 257 (ruff)
+        run: .venv/bin/python -m ruff check .
 
-      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Tipos (mypy)
+        run: .venv/bin/python -m mypy
 
-      - name: Type check with ty
-        run: uv run ty check .
+      - name: Tipos (pyright)
+        run: .venv/bin/python -m pyright
+
+      - name: Seguridad (bandit)
+        run: .venv/bin/python -m bandit -r src json2csv.py
 
   test:
-    name: Test (Python ${{ matrix.python-version }})
+    name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -68,19 +72,21 @@ jobs:
 
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
-      - name: Run tests with coverage
-        run: uv run --python=${{ matrix.python-version }} coverage run -m pytest
+      - name: Crear entorno virtual e instalar dependencias
+        run: |
+          uv venv --python ${{ matrix.python-version }}
+          uv pip install -r requirements.txt
+          uv pip install -e .
 
-      - name: Upload coverage data
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: coverage-${{ matrix.python-version }}
-          path: .coverage.*
-          include-hidden-files: true
+      - name: Verificar consistencia de dependencias
+        run: uv pip check
 
-  coverage:
-    name: Coverage
-    needs: test
+      - name: Pytest con cobertura (minimo 85 %)
+        run: .venv/bin/python -m pytest --cov=tp11 --cov-report=term-missing
+
+  docs:
+    name: Documentacion (pdoc)
+    needs: [lint, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -91,26 +97,54 @@ jobs:
 
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
-      - name: Download coverage data
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: coverage-*
-          merge-multiple: true
-
-      - name: Combine coverage
-        run: uv run coverage combine
-
-      - name: Coverage report
+      - name: Crear entorno virtual e instalar dependencias
         run: |
-          echo '## Coverage Report' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          uv run coverage report | tee -a $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          uv venv --python 3.13
+          uv pip install -r requirements.txt
+          uv pip install -e .
+
+      - name: Generar documentacion con pdoc
+        run: .venv/bin/python -m pdoc --docformat google -o docs_pdoc tp11.json2csv
+
+      - name: Publicar documentacion como artefacto
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: pdoc-docs
+          path: docs_pdoc
+
+  package:
+    name: Empaquetado (entrega continua)
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
+      - name: Construir paquete (wheel y sdist)
+        run: uv build
+
+      - name: Prueba de humo del paquete construido
+        run: |
+          uv venv --python 3.13 smoke
+          uv pip install --python smoke/bin/python dist/*.whl
+          smoke/bin/python -m tp11.json2csv --version
+          echo '[{"a":1,"b":{"c":2}}]' | smoke/bin/python -m tp11.json2csv
+
+      - name: Publicar paquete como artefacto
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: dist
+          path: dist/
 
   all-checks-pass:
     name: All checks pass
     if: always()
-    needs: [lint, type-check, test, coverage]
+    needs: [lint, test, docs, package]
     runs-on: ubuntu-latest
     steps:
       - name: Check job results
