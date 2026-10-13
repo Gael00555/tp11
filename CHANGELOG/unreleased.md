@@ -1,22 +1,25 @@
-# Unreleased
+## [Unreleased]
 
-These are the changes that will go out in the next release.
+### Added
 
-## Added
+- Esqueleto inicial generado con CookieCutter (`cookiecutter-pypackage`).
+- `json2csv`: conversor de JSON a CSV con estrategia de filtro (`-i`, `-o`, `-d`),
+  aplanado de objetos anidados y manejo de errores con códigos de salida.
+- Opción `--version` con VERSION (desde `pyproject.toml`) y BUILD (`TP11_BUILD`).
+- Tests con pytest (38 casos, cobertura total 86,56 %, mínimo 85 %).
+- Configuración de calidad: black, ruff (PEP 8 y PEP 257), mypy y pyright en
+  modo estricto/estándar, y bandit sin observaciones.
+- Workflow de CI/CD: calidad estática, tests en Python 3.12 y 3.13, documentación
+  con pdoc como artefacto y empaquetado con prueba de humo.
+- `requirements.txt`, `CONTEXT.md`, `VERSION.md` y `docs/usage.md`.
 
-tp11 started out as a project generated from [Cookiecutter PyPackage](https://github.com/audreyfeldroy/cookiecutter-pypackage) containing:
+### Changed
 
-- Initial scaffold for tp11.
-- `src/tp11/` package with CLI (Typer + Rich), py.typed marker
-- Tests with pytest, coverage across Python 3.12/3.13/3.14
-- CI via GitHub Actions: lint (Ruff), type check (ty), test matrix, coverage reporting
-- Security scanning: CodeQL analysis for public repositories, Dependabot, and a Zizmor workflow audit
-- Docs site with Zensical + mkdocstrings and a GitHub Pages deployment workflow
-- Trusted publishing to PyPI with OIDC and build provenance attestation
-- `justfile` with dev commands: qa, test, type-check, docs-serve, release
-- Issue templates, PR template, contributing guide, code of conduct, security policy
-- MIT license, .editorconfig, .gitignore
+- `README.md` reescrito para describir el conversor.
+- Largo de línea de ruff pasado de 120 a 88 para coincidir con black.
+- Cobertura mínima de 50 % a 85 %.
 
-### Contributors
+### Removed
 
-[@gael0005](https://github.com/gael0005) (Gael Gabriel Guiffrey) created tp11.
+- Insignias y comandos de PyPI del README original.
+- `ty` y `ruff format` del workflow de CI (se usan mypy, pyright y black).
