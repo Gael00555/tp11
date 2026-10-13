@@ -61,17 +61,39 @@ tp11 = "tp11.cli:app"
 # rules.TY015 = "warn"  # For invalid-argument-type, warn instead of error.
 
 [tool.ruff]
-line-length = 120
+line-length = 88
+target-version = "py312"
+src = ["src"]
+extend-exclude = ["scripts"]
 
 [tool.ruff.lint]
-select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # Pyflakes
-    "I",   # isort
-    "B",   # flake8-bugbear
-    "UP",  # pyupgrade
-]
+select = ["E", "W", "F", "I", "B", "UP", "N", "D"]
+ignore = ["D401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+extend-exclude = "/scripts/"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "src"
+explicit_package_bases = true
+files = ["src/tp11/json2csv.py", "json2csv.py"]
+
+[tool.pyright]
+include = ["src/tp11/json2csv.py", "json2csv.py"]
+extraPaths = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [
@@ -87,7 +109,7 @@ source = ["src/", "tests/"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-fail_under = 50
+fail_under = 85
 exclude_also = [
     "if TYPE_CHECKING:",
     "if typing.TYPE_CHECKING:",
