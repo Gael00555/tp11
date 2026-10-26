@@ -1,6 +1,6 @@
 annotated-doc==0.0.5
 arrow==1.4.0
-ast_serialize==0.13.0
+ast_serialize==0.13.1
 bandit==1.9.4
 binaryornot==0.6.0
 black==26.10.1
