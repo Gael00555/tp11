@@ -24,7 +24,7 @@ nodeenv==1.11.0
 packaging==26.3
 pathspec==1.1.1
 pdoc==16.0.0
-platformdirs==4.13.0
+platformdirs==4.13.5
 pluggy==1.6.0
 Pygments==2.21.0
 pyright==1.1.414
