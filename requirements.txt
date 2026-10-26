@@ -4,7 +4,7 @@ ast_serialize==0.13.0
 bandit==1.9.4
 binaryornot==0.6.0
 black==26.10.1
-certifi==2026.7.22
+certifi==2026.10.18
 charset-normalizer==3.5.2
 click==8.5.0
 colorama==0.4.6
